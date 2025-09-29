@@ -1,6 +1,6 @@
 //封裝「打卡紀錄」資料的資料模型attendance_record.dart
 class AttendanceRecord {
-  int? id;
+  int? id; // 唯一編號
   String employeeId; // 員工編號
   String name; // 員工姓名 (JOIN 取得)
   DateTime timestamp; // 打卡時間
@@ -14,15 +14,18 @@ class AttendanceRecord {
     required this.type,
   });
 
+  // 轉成 Map，方便存入資料庫
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'employeeId': employeeId,
+      'name': name,
       'timestamp': timestamp.toIso8601String(),
       'type': type,
     };
   }
 
+  // 從 Map 生成 AttendanceRecord 物件
   factory AttendanceRecord.fromMap(Map<String, dynamic> map) {
     return AttendanceRecord(
       id: map['id'],

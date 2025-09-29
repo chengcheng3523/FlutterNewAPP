@@ -1,4 +1,5 @@
 // 管理員登入頁admin_login.dart
+// 管理員登入頁面，固定帳號 admin/密碼 1234
 import 'package:flutter/material.dart';
 import 'admin_home.dart';
 

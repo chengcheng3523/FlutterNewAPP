@@ -1,4 +1,5 @@
-// 自訂按鈕元件 (UI Component)
+// 自訂按鈕元件 (UI Component)custom_button.dart
+// 自訂按鈕元件，方便重複使用
 import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {

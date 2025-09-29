@@ -1,4 +1,5 @@
 // 資料庫操作服務層 (Database Service)sqlite_service.dart
+// 負責打卡紀錄與員工資料的 CRUD
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 // import '../models/employee.dart';
@@ -7,13 +8,14 @@ import '../models/attendance_record.dart';
 class SqliteService {
   static Database? _database;
 
-  // 初始化資料庫
+  // 取得資料庫實例，若未初始化則建立資料庫
   static Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDB();
     return _database!;
   }
 
+  // 初始化資料庫及資料表
   static Future<Database> _initDB() async {
     String path = join(await getDatabasesPath(), 'attendance.db');
     return await openDatabase(
@@ -42,7 +44,7 @@ class SqliteService {
     );
   }
 
-  // ===== 打卡紀錄 =====
+  // ===== 打卡紀錄相關操作 =====
   static Future<int> insertRecord(AttendanceRecord record) async {
     final db = await database;
     return await db.insert('records', record.toMap());
@@ -75,7 +77,7 @@ class SqliteService {
     return await db.delete('records', where: 'id = ?', whereArgs: [id]);
   }
 
-  // ===== 員工 CRUD =====
+  // ===== 員工 CRUD 操作 =====
   static Future<List<Map<String, dynamic>>> getAllEmployees() async {
     final db = await database;
     return db.query('employees', orderBy: 'id');

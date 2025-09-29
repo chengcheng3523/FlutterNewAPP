@@ -1,10 +1,11 @@
 // 修改/刪除紀錄頁edit_record.dart
+// 管理員用於修改/刪除打卡紀錄的畫面
 import 'package:flutter/material.dart';
 import '../../models/attendance_record.dart';
 import '../../services/sqlite_service.dart';
 
 class EditRecord extends StatefulWidget {
-  final AttendanceRecord record;
+  final AttendanceRecord record; // 要編輯的打卡紀錄
   EditRecord({required this.record});
 
   @override
@@ -17,12 +18,14 @@ class _EditRecordState extends State<EditRecord> {
 
   @override
   void initState() {
+    // 初始化輸入框
     super.initState();
     _idController = TextEditingController(text: widget.record.employeeId);
     _typeController = TextEditingController(text: widget.record.type);
   }
 
   void _save() async {
+    // 儲存修改內容
     widget.record.employeeId = _idController.text.trim();
     widget.record.type = _typeController.text.trim();
     await SqliteService.updateRecord(widget.record);

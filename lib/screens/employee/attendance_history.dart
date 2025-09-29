@@ -17,11 +17,13 @@ class _AttendanceHistoryState extends State<AttendanceHistory> {
 
   @override
   void initState() {
+    // 載入紀錄
     super.initState();
     _loadRecords();
   }
 
   void _loadRecords() async {
+    // 資料查詢與過濾
     List<AttendanceRecord> allRecords = await SqliteService.getAllRecords();
     if (widget.employeeId != null) {
       records = allRecords

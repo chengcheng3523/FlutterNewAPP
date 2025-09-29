@@ -1,4 +1,5 @@
 // 編輯員工資料頁面admin_employee_page.dart
+// 管理員管理員工資料的頁面，包括新增、編輯、刪除員工
 import 'package:flutter/material.dart';
 import '../../services/sqlite_service.dart';
 
@@ -14,11 +15,13 @@ class _AdminEmployeePageState extends State<AdminEmployeePage> {
 
   @override
   void initState() {
+    // 讀取所有員工
     super.initState();
     _loadEmployees();
   }
 
   Future<void> _loadEmployees() async {
+    // 從資料庫載入員工
     final data = await SqliteService.getAllEmployees();
     setState(() {
       employees = data;
@@ -26,6 +29,7 @@ class _AdminEmployeePageState extends State<AdminEmployeePage> {
   }
 
   void _showEmployeeDialog({int? id, String? name}) {
+    // 彈窗新增/編輯
     final TextEditingController controller = TextEditingController(
       text: name ?? '',
     );
@@ -66,6 +70,7 @@ class _AdminEmployeePageState extends State<AdminEmployeePage> {
   }
 
   void _deleteEmployee(int id) async {
+    // 刪除員工（含確認對話框）
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
