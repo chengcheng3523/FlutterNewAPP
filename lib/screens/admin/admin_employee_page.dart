@@ -69,31 +69,6 @@ class _AdminEmployeePageState extends State<AdminEmployeePage> {
     );
   }
 
-  void _deleteEmployee(int id) async {
-    // 刪除員工（含確認對話框）
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('確認刪除'),
-        content: const Text('確定要刪除這位員工嗎？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('刪除'),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      await SqliteService.deleteEmployee(id);
-      _loadEmployees();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,10 +98,6 @@ class _AdminEmployeePageState extends State<AdminEmployeePage> {
                           id: emp['id'],
                           name: emp['name'],
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _deleteEmployee(emp['id']),
                       ),
                     ],
                   ),

@@ -100,15 +100,4 @@ class SqliteService {
       whereArgs: [id],
     );
   }
-
-  static Future<void> deleteEmployee(int id) async {
-    final db = await database;
-    await db.delete('employees', where: 'id = ?', whereArgs: [id]);
-    // 同時刪除該員工的打卡紀錄
-    await db.delete(
-      'records',
-      where: 'employeeId = ?',
-      whereArgs: [id.toString()],
-    );
-  }
 }
