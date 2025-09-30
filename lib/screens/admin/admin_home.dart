@@ -11,6 +11,7 @@ class AdminHome extends StatefulWidget {
   _AdminHomeState createState() => _AdminHomeState();
 }
 
+// 管理員主頁，顯示所有打卡紀錄，並可編輯、刪除紀錄
 class _AdminHomeState extends State<AdminHome> {
   List<AttendanceRecord> records = [];
 
