@@ -14,20 +14,23 @@ class EditRecord extends StatefulWidget {
 
 class _EditRecordState extends State<EditRecord> {
   late TextEditingController _idController;
-  late TextEditingController _typeController;
+  late String _workType; // 用 DropdownButton 取代 TextField
+  // late TextEditingController _typeController;
 
   @override
   void initState() {
     // 初始化輸入框
     super.initState();
     _idController = TextEditingController(text: widget.record.employeeId);
-    _typeController = TextEditingController(text: widget.record.type);
+    _workType = widget.record.type; // 預設值 = 原本紀錄
+    // _typeController = TextEditingController(text: widget.record.type);
   }
 
   void _save() async {
     // 儲存修改內容
     widget.record.employeeId = _idController.text.trim();
-    widget.record.type = _typeController.text.trim();
+    widget.record.type = _workType;
+    // widget.record.type = _typeController.text.trim();
     await SqliteService.updateRecord(widget.record);
     Navigator.pop(context);
   }
@@ -39,14 +42,24 @@ class _EditRecordState extends State<EditRecord> {
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _idController,
               decoration: InputDecoration(labelText: '員工編號'),
             ),
-            TextField(
-              controller: _typeController,
-              decoration: InputDecoration(labelText: '上/下班'),
+            SizedBox(height: 20),
+            Text('上 / 下班'),
+            DropdownButton<String>(
+              value: _workType,
+              items: ['上班', '下班'].map((value) {
+                return DropdownMenuItem(value: value, child: Text(value));
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _workType = value!;
+                });
+              },
             ),
             SizedBox(height: 20),
             ElevatedButton(onPressed: _save, child: Text('儲存')),
