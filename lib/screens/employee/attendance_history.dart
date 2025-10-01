@@ -47,7 +47,12 @@ class _AttendanceHistoryState extends State<AttendanceHistory> {
               itemBuilder: (_, index) {
                 final rec = records[index];
                 return ListTile(
-                  title: Text('${rec.name} ${rec.type}'),
+                  title: Text(
+                    '${rec.name ?? ''} ${rec.type}',
+                    style: TextStyle(
+                      color: rec.isManual ? Colors.red : Colors.black, // 補打卡紅字
+                    ),
+                  ),
                   subtitle: Text('Date/Time：${rec.timestamp}'),
                 );
               },

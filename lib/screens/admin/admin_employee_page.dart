@@ -30,18 +30,53 @@ class AdminEmployeePageState extends State<AdminEmployeePage> {
 
   void _showEmployeeDialog({int? id, String? name}) {
     // 彈窗新增/編輯
-    final TextEditingController controller = TextEditingController(
-      text: name ?? '',
-    );
+    // final TextEditingController controller = TextEditingController(text: name ?? '',);
+    final TextEditingController nameController = TextEditingController(text: name ?? '');
+    final TextEditingController idController = TextEditingController(text: id?.toString() ?? '');
+    String? idError; // 用來顯示紅色提示
 
     showDialog(
       context: context,
       builder: (_) {
+        // 用 StatefulBuilder 讓對話框內可動態更新
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
         return AlertDialog(
           title: Text(id == null ? '新增員工' : '編輯員工'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: '員工姓名'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 員工姓名
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: '員工姓名'),
+              ),
+              const SizedBox(height: 10),
+              // 員工ID（新增才可編輯，編輯時不可更改）
+              TextField(
+                controller: idController,
+                decoration: InputDecoration(
+                    labelText: '員工編號',
+                    errorText: idError, // 顯示紅色提示
+                ),
+                keyboardType: TextInputType.number,
+                enabled: id == null,
+                onChanged: (value) {
+                  if (id == null) {
+                    final newId = int.tryParse(value.trim());
+                    if (newId != null && employees.any((e) => e['id'] == newId)) {
+                      setDialogState(() {
+                        idError = '此編號已存在';
+                      });
+                    } else {
+                      setDialogState(() {
+                        idError = null;
+                      });
+                    }
+                  }
+                },
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -50,14 +85,26 @@ class AdminEmployeePageState extends State<AdminEmployeePage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final newName = controller.text.trim();
-                if (newName.isEmpty) return;
+                // final newName = controller.text.trim();
+                final newName = nameController.text.trim();
+                final newIdText = idController.text.trim();
 
+                // if (newName.isEmpty) return;
+
+                if (newName.isEmpty || newIdText.isEmpty || idError != null) return;
+
+                final newId = int.tryParse(newIdText);
+                if (newId == null) return;
+
+                // 檢查新增時 ID 是否重複
                 if (id == null) {
-                  await SqliteService.addEmployee(newName);
+                  // 新增
+                  await SqliteService.addEmployeeWithId(newId, newName);
                 } else {
+                  // 編輯名稱
                   await SqliteService.updateEmployee(id, newName);
                 }
+
                 if (!mounted) return;
                 Navigator.pop(context);
                 _loadEmployees();
@@ -65,6 +112,8 @@ class AdminEmployeePageState extends State<AdminEmployeePage> {
               child: const Text('確認'),
             ),
           ],
+        );
+          },
         );
       },
     );

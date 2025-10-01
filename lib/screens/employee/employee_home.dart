@@ -7,6 +7,7 @@ import '../admin/admin_login.dart';
 import 'package:intl/intl.dart';
 import '../../models/attendance_record.dart';
 import '../../services/sqlite_service.dart';
+import 'manual_attendance.dart'; // ⭐ 新增引入
 
 class EmployeeHome extends StatefulWidget {
   const EmployeeHome({Key? key}) : super(key: key);
@@ -87,7 +88,7 @@ class _EmployeeHomeState extends State<EmployeeHome> {
     return Scaffold(
       appBar: AppBar(
         title: Text('員工打卡'),
-        leading: IconButton(
+        leading: IconButton(//（leading 左邊）
           icon: Icon(Icons.history),
           onPressed: () {
             Navigator.push(
@@ -98,7 +99,17 @@ class _EmployeeHomeState extends State<EmployeeHome> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.admin_panel_settings),
+            icon: Icon(Icons.edit_calendar), // ⭐ 新增「補打卡」圖示（actions 第一個）
+            tooltip: "補打卡",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ManualAttendance()),
+              );
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.admin_panel_settings),//管理員登入（actions 第二個）
             onPressed: () {
               Navigator.push(
                 context,

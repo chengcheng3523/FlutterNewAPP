@@ -46,7 +46,7 @@ class _EditRecordState extends State<EditRecord> {
           children: [
             TextField(
               controller: _idController,
-              decoration: InputDecoration(labelText: '員工編號'),
+              decoration: InputDecoration(labelText: '員工姓名/編號'),
             ),
             SizedBox(height: 20),
             Text('上 / 下班'),

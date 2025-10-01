@@ -5,6 +5,7 @@ class AttendanceRecord {
   String name; // 員工姓名 (JOIN 取得)
   DateTime timestamp; // 打卡時間
   String type; // 打卡類型 (上班/下班)
+  bool isManual; // 新增：是否為補打卡
 
   AttendanceRecord({
     this.id,
@@ -12,6 +13,7 @@ class AttendanceRecord {
     this.name = '',
     required this.timestamp,
     required this.type,
+    this.isManual = false, // 預設 false
   });
 
   // 轉成 Map，方便存入資料庫
@@ -22,6 +24,7 @@ class AttendanceRecord {
       'name': name,
       'timestamp': timestamp.toIso8601String(),
       'type': type,
+      'isManual': isManual ? 1 : 0, // 存成整數
     };
   }
 
@@ -33,6 +36,7 @@ class AttendanceRecord {
       name: map['name'] ?? '',
       timestamp: DateTime.parse(map['timestamp']),
       type: map['type'],
+      isManual: map['isManual'] == 1, // 轉回布林
     );
   }
 }
