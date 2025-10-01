@@ -7,10 +7,10 @@ class AdminEmployeePage extends StatefulWidget {
   const AdminEmployeePage({super.key});
 
   @override
-  _AdminEmployeePageState createState() => _AdminEmployeePageState();
+  AdminEmployeePageState createState() => AdminEmployeePageState();
 }
 
-class _AdminEmployeePageState extends State<AdminEmployeePage> {
+class AdminEmployeePageState extends State<AdminEmployeePage> {
   List<Map<String, dynamic>> employees = [];
 
   @override
@@ -58,6 +58,7 @@ class _AdminEmployeePageState extends State<AdminEmployeePage> {
                 } else {
                   await SqliteService.updateEmployee(id, newName);
                 }
+                if (!mounted) return;
                 Navigator.pop(context);
                 _loadEmployees();
               },

@@ -47,8 +47,8 @@ class _AttendanceHistoryState extends State<AttendanceHistory> {
               itemBuilder: (_, index) {
                 final rec = records[index];
                 return ListTile(
-                  title: Text('${rec.employeeId} - ${rec.type}'),
-                  subtitle: Text('${rec.timestamp}'),
+                  title: Text('${rec.name} - ${rec.type}'),
+                  subtitle: Text('Date/Time：${rec.timestamp}'),
                 );
               },
             ),
