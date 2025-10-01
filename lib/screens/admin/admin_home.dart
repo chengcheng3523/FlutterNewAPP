@@ -77,8 +77,8 @@ class _AdminHomeState extends State<AdminHome> {
           final rec = records[index];
           return ListTile(
             //顯示紀錄
-            title: Text('${rec.name} - ${rec.employeeId}'),
-            subtitle: Text('${rec.type} Date/Time：${rec.timestamp}'),
+            title: Text('${rec.name} ${rec.type}'),
+            subtitle: Text('${rec.timestamp}'),
 
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
