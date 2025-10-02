@@ -48,7 +48,7 @@ class _AttendanceHistoryState extends State<AttendanceHistory> {
                 final rec = records[index];
                 return ListTile(
                   title: Text(
-                    '${rec.name ?? ''} ${rec.type}',
+                    '${rec.name} ${rec.type}',
                     style: TextStyle(
                       color: rec.isManual ? Colors.red : Colors.black, // 補打卡紅字
                     ),

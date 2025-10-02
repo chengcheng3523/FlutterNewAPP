@@ -7,6 +7,7 @@ import '../../services/sqlite_service.dart';
 import '../../models/attendance_record.dart';
 
 class AdminHome extends StatefulWidget {
+  const AdminHome({super.key}); // 加上 key
   @override
   _AdminHomeState createState() => _AdminHomeState();
 }
@@ -18,7 +19,10 @@ class _AdminHomeState extends State<AdminHome> {
   @override
   void initState() {
     super.initState();
-    _loadRecords();
+    // 插入測試資料後再讀取
+    SqliteService.seedEmployeeCTestData().then((_) {
+      _loadRecords();
+    });
   }
 
   void _loadRecords() async {

@@ -12,9 +12,9 @@ class MonthlyReport extends StatefulWidget {
 }
 
 class _MonthlyReportState extends State<MonthlyReport> {
-  Map<String, Map<String, List<AttendanceRecord>>> groupedRecords = {};
-  Map<String, Map<String, Duration>> dailyDurations = {};
-  Map<String, Duration> monthlyTotals = {};
+  Map<String, Map<String, List<AttendanceRecord>>> groupedData =
+      {}; // 年月 -> 員工 -> 紀錄
+  Map<String, Map<String, double>> monthlyHours = {}; // 年月 -> 員工 -> 當月總工時
 
   @override
   void initState() {
@@ -22,31 +22,27 @@ class _MonthlyReportState extends State<MonthlyReport> {
     _calculateHours();
   }
 
-  void _calculateHours() async {
+  Future<void> _calculateHours() async {
     List<AttendanceRecord> records = await SqliteService.getAllRecords();
-    records.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    // 依年月、員工分組
-    Map<String, Map<String, List<AttendanceRecord>>> tempGrouped = {};
-    Map<String, Map<String, Duration>> tempDailyDur = {};
-    Map<String, Duration> tempMonthlyTotal = {};
+    groupedData.clear();
+    monthlyHours.clear();
 
+    // 先按年月 -> 員工ID 分組
     for (var r in records) {
       String yearMonth = DateFormat('yyyy-MM').format(r.timestamp);
-      String empName = r.name ?? r.employeeId;
-
-      tempGrouped.putIfAbsent(yearMonth, () => {});
-      tempGrouped[yearMonth]!.putIfAbsent(empName, () => []);
-      tempGrouped[yearMonth]![empName]!.add(r);
+      groupedData.putIfAbsent(yearMonth, () => {});
+      groupedData[yearMonth]!.putIfAbsent(r.name, () => []);
+      groupedData[yearMonth]![r.name]!.add(r);
     }
 
-    // 計算每日上班時數
-    tempGrouped.forEach((yearMonth, empMap) {
+    groupedData.forEach((yearMonth, empMap) {
+      monthlyHours[yearMonth] = {};
       empMap.forEach((empName, recs) {
-        Map<String, Duration> dayDur = {};
-        Duration totalDur = Duration.zero;
+        // 按時間排序
+        recs.sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-        // 依日期分組
+        // 每日分組
         Map<String, List<AttendanceRecord>> dailyRecords = {};
         for (var r in recs) {
           String day = DateFormat('yyyy-MM-dd').format(r.timestamp);
@@ -54,101 +50,166 @@ class _MonthlyReportState extends State<MonthlyReport> {
           dailyRecords[day]!.add(r);
         }
 
-        // 計算每日工時
-        dailyRecords.forEach((day, recs) {
-          recs.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-          Duration dayDuration = Duration.zero;
-          for (int i = 0; i < recs.length - 1; i += 2) {
-            if (recs[i].type == '上班' && recs[i + 1].type == '下班') {
-              dayDuration += recs[i + 1].timestamp.difference(recs[i].timestamp);
+        double monthTotal = 0;
+
+        dailyRecords.forEach((day, recList) {
+          recList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+          // 計算每日總工時
+          double dailyHours = 0;
+          for (int i = 0; i < recList.length - 1; i += 2) {
+            if (recList[i].type == '上班' && recList[i + 1].type == '下班') {
+              DateTime start = recList[i].timestamp;
+              DateTime end = recList[i + 1].timestamp;
+
+              // 依星期限制下班時間
+              int weekday = end.weekday; // 1 = Mon, 7 = Sun
+              DateTime limitEnd = end;
+              if (weekday >= 1 && weekday <= 4) {
+                if (end.hour > 21 || (end.hour == 21 && end.minute > 0)) {
+                  limitEnd = DateTime(end.year, end.month, end.day, 21, 30);
+                }
+              } else if (weekday == 5 || weekday == 6) {
+                if (end.hour > 21 || (end.hour == 21 && end.minute > 30)) {
+                  limitEnd = DateTime(end.year, end.month, end.day, 22, 0);
+                }
+              } else if (weekday == 7) {
+                if (end.hour > 21 || (end.hour == 21 && end.minute > 0)) {
+                  limitEnd = DateTime(end.year, end.month, end.day, 21, 30);
+                }
+              }
+
+              if (limitEnd.isBefore(start)) continue;
+
+              int minutes = limitEnd.difference(start).inMinutes;
+
+              // 半小時單位計算
+              int halfHours = (minutes ~/ 30) * 30; // 不滿半小時不算
+              dailyHours += halfHours / 60.0;
             }
           }
-          dayDur[day] = dayDuration;
-          totalDur += dayDuration;
+
+          monthTotal += dailyHours;
         });
 
-        tempDailyDur.putIfAbsent(yearMonth, () => {});
-        tempDailyDur[yearMonth]![empName] = dayDur.values.fold(Duration.zero, (a, b) => a + b);
-
-        tempMonthlyTotal.putIfAbsent(yearMonth + '_' + empName, () => totalDur);
+        monthlyHours[yearMonth]![empName] = monthTotal;
       });
     });
 
-    setState(() {
-      groupedRecords = tempGrouped;
-      dailyDurations = tempDailyDur;
-      monthlyTotals = tempMonthlyTotal;
-    });
-  }
-
-  String formatDuration(Duration d) {
-    int hours = d.inHours;
-    int minutes = d.inMinutes % 60;
-    int seconds = d.inSeconds % 60;
-    return '$hours 小時 $minutes 分 $seconds 秒';
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('月統計報表')),
-      body: ListView(
-        children: groupedRecords.entries.map((ymEntry) {
-          String yearMonth = ymEntry.key;
-          return ExpansionTile(
-            title: Text(yearMonth),
-            children: ymEntry.value.entries.map((empEntry) {
-              String empName = empEntry.key;
-              List<AttendanceRecord> recs = empEntry.value;
-              String monthKey = '$yearMonth\_$empName';
-              Duration total = monthlyTotals[monthKey] ?? Duration.zero;
+      appBar: AppBar(title: const Text('月統計報表')),
+      body: groupedData.isEmpty
+          ? const Center(child: Text('沒有打卡資料'))
+          : ListView(
+              children: groupedData.entries.map((ymEntry) {
+                String yearMonth = ymEntry.key;
+                Map<String, List<AttendanceRecord>> empMap = ymEntry.value;
 
-              // 依日期分組
-              Map<String, List<AttendanceRecord>> dailyRecords = {};
-              for (var r in recs) {
-                String day = DateFormat('yyyy-MM-dd').format(r.timestamp);
-                dailyRecords.putIfAbsent(day, () => []);
-                dailyRecords[day]!.add(r);
-              }
-
-              return ExpansionTile(
-                title: Text('$empName 總工時：${formatDuration(total)}'),
-                children: dailyRecords.entries.map((dayEntry) {
-                  String day = dayEntry.key;
-                  List<AttendanceRecord> dayRecs = dayEntry.value;
-                  Duration dayDuration = Duration.zero;
-                  for (int i = 0; i < dayRecs.length - 1; i += 2) {
-                    if (dayRecs[i].type == '上班' && dayRecs[i + 1].type == '下班') {
-                      dayDuration += dayRecs[i + 1].timestamp.difference(dayRecs[i].timestamp);
-                    }
-                  }
-
-                  return Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('$day 上班時數：${formatDuration(dayDuration)}'),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: dayRecs.map((r) {
-                            return Text(
-                              '${DateFormat('HH:mm:ss').format(r.timestamp)} ${r.type}',
-                              style: TextStyle(
-                                color: r.isManual ? Colors.red : Colors.black,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                return ExpansionTile(
+                  title: Text(
+                    yearMonth,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                }).toList(),
-              );
-            }).toList(),
-          );
-        }).toList(),
-      ),
+                  ),
+                  children: empMap.entries.map((empEntry) {
+                    String empName = empEntry.key;
+                    List<AttendanceRecord> recs = empEntry.value;
+                    double totalHours = monthlyHours[yearMonth]?[empName] ?? 0;
+
+                    // 每日分組
+                    Map<String, List<AttendanceRecord>> dailyRecords = {};
+                    for (var r in recs) {
+                      String day = DateFormat('yyyy-MM-dd').format(r.timestamp);
+                      dailyRecords.putIfAbsent(day, () => []);
+                      dailyRecords[day]!.add(r);
+                    }
+
+                    return ExpansionTile(
+                      title: Text(
+                        '$empName - 當月總工時: ${totalHours.toStringAsFixed(2)} 小時',
+                      ),
+                      children: dailyRecords.entries.map((dayEntry) {
+                        String day = dayEntry.key;
+                        List<AttendanceRecord> dayList = dayEntry.value;
+
+                        double dailyHours = 0;
+                        for (int i = 0; i < dayList.length - 1; i += 2) {
+                          if (dayList[i].type == '上班' &&
+                              dayList[i + 1].type == '下班') {
+                            DateTime start = dayList[i].timestamp;
+                            DateTime end = dayList[i + 1].timestamp;
+
+                            int weekday = end.weekday;
+                            DateTime limitEnd = end;
+                            if (weekday >= 1 && weekday <= 4) {
+                              if (end.hour > 21 ||
+                                  (end.hour == 21 && end.minute > 0)) {
+                                limitEnd = DateTime(
+                                  end.year,
+                                  end.month,
+                                  end.day,
+                                  21,
+                                  30,
+                                );
+                              }
+                            } else if (weekday == 5 || weekday == 6) {
+                              if (end.hour > 21 ||
+                                  (end.hour == 21 && end.minute > 30)) {
+                                limitEnd = DateTime(
+                                  end.year,
+                                  end.month,
+                                  end.day,
+                                  22,
+                                  0,
+                                );
+                              }
+                            } else if (weekday == 7) {
+                              if (end.hour > 21 ||
+                                  (end.hour == 21 && end.minute > 0)) {
+                                limitEnd = DateTime(
+                                  end.year,
+                                  end.month,
+                                  end.day,
+                                  21,
+                                  30,
+                                );
+                              }
+                            }
+
+                            if (limitEnd.isBefore(start)) continue;
+
+                            int minutes = limitEnd.difference(start).inMinutes;
+                            int halfHours = (minutes ~/ 30) * 30;
+                            dailyHours += halfHours / 60.0;
+                          }
+                        }
+
+                        return ListTile(
+                          title: Text(
+                            '${dayList.map((e) => e.type).join(' / ')}',
+                            style: TextStyle(
+                              color: dayList.any((e) => e.isManual)
+                                  ? Colors.red
+                                  : Colors.black,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '日期: $day - 當日工時: ${dailyHours.toStringAsFixed(2)} 小時',
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  }).toList(),
+                );
+              }).toList(),
+            ),
     );
   }
 }

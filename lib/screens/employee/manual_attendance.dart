@@ -11,7 +11,7 @@ class ManualAttendance extends StatefulWidget {
 
 class _ManualAttendanceState extends State<ManualAttendance> {
   final TextEditingController _idController = TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
+
   DateTime? _selectedDateTime; // ⭐ 這裡宣告，避免 undefined
   String _type = '上班';
 

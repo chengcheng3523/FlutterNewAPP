@@ -92,7 +92,7 @@ class AdminEmployeePageState extends State<AdminEmployeePage> {
                 // if (newName.isEmpty) return;
 
                 if (newName.isEmpty || newIdText.isEmpty || idError != null) return;
-
+                final navigator = Navigator.of(context); // ⭐ 先存起來
                 final newId = int.tryParse(newIdText);
                 if (newId == null) return;
 
@@ -105,9 +105,16 @@ class AdminEmployeePageState extends State<AdminEmployeePage> {
                   await SqliteService.updateEmployee(id, newName);
                 }
 
+                if (id == null) {
+                  await SqliteService.addEmployeeWithId(newId, newName);
+                } else {
+                  await SqliteService.updateEmployee(id, newName);
+                }
+
                 if (!mounted) return;
-                Navigator.pop(context);
+                navigator.pop(); // 用剛剛存的 navigator
                 _loadEmployees();
+
               },
               child: const Text('確認'),
             ),
