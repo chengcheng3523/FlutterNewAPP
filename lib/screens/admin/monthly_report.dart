@@ -11,6 +11,55 @@ class MonthlyReport extends StatefulWidget {
   _MonthlyReportState createState() => _MonthlyReportState();
 }
 
+// 自動判斷規則範例（早班固定 09:30）
+class AttendanceChecker {
+  static bool isLate(AttendanceRecord record) {
+    // 只判上班時間
+    if (record.type != '上班') return false;
+
+    // 只判早班上班時間（例如 09:30 前打卡才算早班）
+    if (record.timestamp.hour > 10) return false; // 下午/晚上班不判遲到
+
+    return record.timestamp.isAfter(
+      DateTime(
+        record.timestamp.year,
+        record.timestamp.month,
+        record.timestamp.day,
+        9,
+        30,
+      ),
+    );
+  }
+
+  static bool isEarlyLeave(AttendanceRecord record) {
+    // 只判下班時間
+    if (record.type != '下班') return false;
+    // 假設早班最少工作 8 小時，可自行調整規則
+    final start = DateTime(
+      record.timestamp.year,
+      record.timestamp.month,
+      record.timestamp.day,
+      9,
+      30,
+    );
+    return record.timestamp.isBefore(start.add(const Duration(hours: 8)));
+  }
+
+  static bool isMissingPair(List<AttendanceRecord> dayRecords) {
+    // 如果每天上班/下班不成對，表示缺卡
+    int checkIn = dayRecords.where((r) => r.type == '上班').length;
+    int checkOut = dayRecords.where((r) => r.type == '下班').length;
+    return checkIn != checkOut;
+  }
+
+  static bool hasAbnormal(List<AttendanceRecord> dayRecords) {
+    return dayRecords.any((r) => r.isManual == 1) ||
+        dayRecords.any(isLate) ||
+        dayRecords.any(isEarlyLeave) ||
+        isMissingPair(dayRecords);
+  }
+}
+
 class _MonthlyReportState extends State<MonthlyReport> {
   Map<String, Map<String, List<AttendanceRecord>>> groupedData =
       {}; // 年月 -> 員工 -> 紀錄
@@ -193,9 +242,12 @@ class _MonthlyReportState extends State<MonthlyReport> {
 
                         return ListTile(
                           title: Text(
-                            '${dayList.map((e) => e.type).join(' / ')}',
+                            '${dayList.map((e) => DateFormat('HH:mm').format(e.timestamp)).join(' / ')}',
                             style: TextStyle(
-                              color: dayList.any((e) => e.isManual)
+                              color:
+                                  dayList.any(
+                                    (e) => e.isManual,
+                                  ) // 注意這裡使用布林值而非 == 1
                                   ? Colors.red
                                   : Colors.black,
                             ),

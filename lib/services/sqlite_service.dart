@@ -3,7 +3,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/attendance_record.dart';
-import 'dart:math';
+// import 'dart:math';
 
 class SqliteService {
   static Database? _database;
@@ -177,81 +177,84 @@ class SqliteService {
     }
   }
 
-
   static Future<void> seedEmployeeCTestData() async {
     final db = await database;
 
-    // 先清理原有 C 的紀錄
-    await db.delete('records', where: 'name = ?', whereArgs: ['C']);
+    // 清理原有 C 的資料
+    await db.delete('records', where: 'employeeId = ?', whereArgs: ['3']);
+    await db.delete('employees', where: 'id = ?', whereArgs: [3]);
 
-    // 2️⃣ 新增員工 C
+    // 新增員工 C
     await db.insert('employees', {
       'id': 3,
       'name': 'C',
       'created_at': DateTime.now().toIso8601String(),
     });
 
-    // 九月份紀錄
-    final records = [
-      {'date': 3, 'on': '09:27', 'off': '21:27'},
-      {'date': 4, 'on': '09:19', 'off': '21:16'},
-      {'date': 5, 'on': '09:31', 'off': '22:00'}, //遲到
-      {'date': 6, 'on': '09:27', 'off': '21:44'},
-      {'date': 7, 'on': '09:27', 'off': '21:39'},
-      {'date': 8, 'on': '16:51', 'off': '21:26'},
-      {'date': 9, 'on': '16:40', 'off': '21:27'},
-      {'date': 10, 'on': '09:27', 'off': '18:05'},
-      {'date': 12, 'on': '09:28', 'off': '17:05'},
-      {'date': 13, 'on': '10:22', 'off': '21:58'},
-      {'date': 14, 'on': '10:22', 'off': '21:19'},
-      {'date': 15, 'on': '16:50', 'off': '21:30'},
-      {'date': 16, 'on': '16:53', 'off': '21:25'},
-      {'date': 17, 'on': '09:32', 'off': '21:25'}, //遲到
-      {'date': 19, 'on': '16:49', 'off': '22:03'},
-      {'date': 20, 'on': '10:28', 'off': '21:54'},
-      {'date': 21, 'on': '09:26', 'off': '20:01'},
-      {'date': 22, 'on': '09:30', 'off': '21:20'},
-      {'date': 24, 'on': '16:54', 'off': '21:15'},
-      {'date': 25, 'on': '16:54', 'off': '21:15'},
-      {'date': 26, 'on': '09:27', 'off': '21:44'},
-      {'date': 28, 'on': '16:54', 'off': '21:15'},
-      {'date': 29, 'on': '09:27', 'off': '21:39'},
-    ];
-
     final year = DateTime.now().year;
     final month = 9;
-    final random = Random();
+
+    final records = [
+      {'date': 3, 'on': '09:27', 'off': '21:27', 'isLate': false},
+      {'date': 4, 'on': '09:19', 'off': '21:16', 'isLate': false},
+      {'date': 5, 'on': '09:31', 'off': '22:00', 'isLate': true}, // 遲到
+      {'date': 6, 'on': '09:27', 'off': '21:44', 'isLate': false},
+      {'date': 7, 'on': '09:27', 'off': '21:39', 'isLate': false},
+      {'date': 8, 'on': '16:51', 'off': '21:26', 'isLate': false},
+      {'date': 9, 'on': '16:40', 'off': '21:27', 'isLate': false},
+      {'date': 10, 'on': '09:27', 'off': '18:05', 'isLate': false},
+      {'date': 12, 'on': '09:28', 'off': '17:05', 'isLate': false},
+      {'date': 13, 'on': '10:22', 'off': '21:58', 'isLate': false},
+      {'date': 14, 'on': '10:22', 'off': '21:19', 'isLate': false},
+      {'date': 15, 'on': '16:50', 'off': '21:30', 'isLate': false},
+      {'date': 16, 'on': '16:53', 'off': '21:25', 'isLate': false},
+      {'date': 17, 'on': '09:32', 'off': '21:25', 'isLate': true}, // 遲到
+      {'date': 19, 'on': '16:49', 'off': '22:03', 'isLate': false},
+      {'date': 20, 'on': '10:28', 'off': '21:54', 'isLate': false},
+      {'date': 21, 'on': '09:26', 'off': '20:01', 'isLate': false},
+      {'date': 22, 'on': '09:30', 'off': '21:20', 'isLate': false},
+      {'date': 24, 'on': '16:54', 'off': '21:15', 'isLate': false},
+      {'date': 25, 'on': '16:54', 'off': '21:15', 'isLate': false},
+      {'date': 26, 'on': '09:27', 'off': '21:44', 'isLate': false},
+      {'date': 28, 'on': '16:54', 'off': '21:15', 'isLate': false},
+      {'date': 29, 'on': '09:27', 'off': '21:39', 'isLate': false},
+    ];
 
     for (var rec in records) {
-      // 隨機決定是否遲到/早退/缺卡
-      bool onManual = random.nextInt(10) < 2; // 20% 機率上班異常
-      bool offManual = random.nextInt(10) < 2; // 20% 機率下班異常
+      final day = rec['date'] as int;
+      final onTime = (rec['on'] as String).split(':');
+      final offTime = (rec['off'] as String).split(':');
+      final isLate = rec['isLate'] as bool;
 
       // 上班
-      final onTime = (rec['on'] as String).split(':'); // cast 為 String
-      final onHour = int.parse(onTime[0]);
-      final onMinute = int.parse(onTime[1]);
-      final day = rec['date'] as int; // cast 為 int
       await db.insert('records', {
-        'employeeId': '3', // 對應 employees.id
+        'employeeId': '3',
         'name': 'C',
         'type': '上班',
-        'timestamp': DateTime(year, month, day, onHour, onMinute).toIso8601String(),
-        'isManual': 1, // 標記補打卡或異常
+        'timestamp': DateTime(
+          year,
+          month,
+          day,
+          int.parse(onTime[0]),
+          int.parse(onTime[1]),
+        ).toIso8601String(),
+        'isManual': isLate ? 1 : 0,
       });
 
       // 下班
-      final offTime = (rec['off'] as String).split(':');
-      final offHour = int.parse(offTime[0]);
-      final offMinute = int.parse(offTime[1]);
       await db.insert('records', {
         'employeeId': '3',
         'name': 'C',
         'type': '下班',
-        'timestamp': DateTime(year, month, day, offHour, offMinute).toIso8601String(),
-        'isManual': 1, // 標記補打卡或異常
+        'timestamp': DateTime(
+          year,
+          month,
+          day,
+          int.parse(offTime[0]),
+          int.parse(offTime[1]),
+        ).toIso8601String(),
+        'isManual': isLate ? 1 : 0,
       });
     }
   }
-
 }
