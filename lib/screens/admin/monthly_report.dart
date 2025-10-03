@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/sqlite_service.dart';
 import '../../models/attendance_record.dart';
 import 'package:intl/intl.dart';
+import '../../services/export_service.dart';
 
 class MonthlyReport extends StatefulWidget {
   const MonthlyReport({Key? key}) : super(key: key);
@@ -130,6 +131,7 @@ class _MonthlyReportState extends State<MonthlyReport> {
 
               if (limitEnd.isBefore(start)) continue;
 
+              // 計算實際工作時數（分鐘差）
               int minutes = limitEnd.difference(start).inMinutes;
 
               // 半小時單位計算
@@ -151,7 +153,19 @@ class _MonthlyReportState extends State<MonthlyReport> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('月統計報表')),
+      appBar: AppBar(
+        title: const Text('月統計報表'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download),
+            onPressed: () async {
+              final records = await SqliteService.getAllRecords();
+              final path = await ExportService.exportExcel(records);
+              await ExportService.shareFile(path);
+            },
+          ),
+        ],
+      ),
       body: groupedData.isEmpty
           ? const Center(child: Text('沒有打卡資料'))
           : ListView(
@@ -189,15 +203,23 @@ class _MonthlyReportState extends State<MonthlyReport> {
                         List<AttendanceRecord> dayList = dayEntry.value;
 
                         double dailyHours = 0;
+
+                        // 每兩筆資料為一組（上班 / 下班）
                         for (int i = 0; i < dayList.length - 1; i += 2) {
                           if (dayList[i].type == '上班' &&
                               dayList[i + 1].type == '下班') {
-                            DateTime start = dayList[i].timestamp;
-                            DateTime end = dayList[i + 1].timestamp;
+                            DateTime start = dayList[i].timestamp; // 上班時間
+                            DateTime end = dayList[i + 1].timestamp; // 下班時間
+
+                            // 直接用上下班差值
+                            int minutes = end.difference(start).inMinutes;
 
                             int weekday = end.weekday;
+                            // 預設下班時間為打卡時間
                             DateTime limitEnd = end;
+                            // 判斷平日、週五六、週日的最晚可計算工時
                             if (weekday >= 1 && weekday <= 4) {
+                              // 週一到週四最晚算到 21:30
                               if (end.hour > 21 ||
                                   (end.hour == 21 && end.minute > 0)) {
                                 limitEnd = DateTime(
@@ -209,6 +231,7 @@ class _MonthlyReportState extends State<MonthlyReport> {
                                 );
                               }
                             } else if (weekday == 5 || weekday == 6) {
+                              // 週五、週六最晚算到 22:00
                               if (end.hour > 21 ||
                                   (end.hour == 21 && end.minute > 30)) {
                                 limitEnd = DateTime(
@@ -220,6 +243,7 @@ class _MonthlyReportState extends State<MonthlyReport> {
                                 );
                               }
                             } else if (weekday == 7) {
+                              // 週日最晚算到 21:30
                               if (end.hour > 21 ||
                                   (end.hour == 21 && end.minute > 0)) {
                                 limitEnd = DateTime(
@@ -232,10 +256,10 @@ class _MonthlyReportState extends State<MonthlyReport> {
                               }
                             }
 
+                            // 避免修正後的下班時間早於上班時間
                             if (limitEnd.isBefore(start)) continue;
 
-                            int minutes = limitEnd.difference(start).inMinutes;
-                            int halfHours = (minutes ~/ 30) * 30;
+                            int halfHours = (minutes ~/ 30) * 30; // 以半小時計
                             dailyHours += halfHours / 60.0;
                           }
                         }
